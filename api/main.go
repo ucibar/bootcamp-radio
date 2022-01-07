@@ -6,6 +6,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	_ "github.com/lib/pq"
 	"github.com/uCibar/bootcamp-radio/api/handler"
+	"github.com/uCibar/bootcamp-radio/config"
 	"github.com/uCibar/bootcamp-radio/repository"
 	"github.com/uCibar/bootcamp-radio/service/auth"
 	"github.com/uCibar/bootcamp-radio/service/user"
@@ -15,8 +16,10 @@ import (
 )
 
 func main() {
-	dbInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		"localhost", 5433, "postgres", "1q2w3e4r", "whereami")
+	conf := config.FromENV()
+
+	dbInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		conf.DBHost, conf.DBPort, conf.DBUser, conf.DBPassword, conf.DBName)
 
 	db, err := sql.Open("postgres", dbInfo)
 	if err != nil {
