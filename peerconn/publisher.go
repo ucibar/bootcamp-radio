@@ -51,7 +51,6 @@ func (p *Publisher) removeTrack(lt webrtc.TrackLocal) {
 func (p *Publisher) onTrack() {
 	p.pc.OnTrack(func(rt *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 		if rt.Kind() != webrtc.RTPCodecTypeAudio {
-			log.Printf("TrackRemote is not audio\n") // TODO: remove
 			return
 		}
 
