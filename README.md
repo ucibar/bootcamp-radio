@@ -17,7 +17,7 @@ $ DB_HOST=localhost DB_PORT=5432 DB_USER=postgres DB_PASS=postgres DB_NAME=where
 You need to pass config variables as env to executable as seen above.
 
 ## Endpoints
-- `GET /public` frontend(index.html) for showcase:
+- `GET /public` frontend for showcase:
 - 
 - `POST /api/auth/register` for register a user:
 
@@ -50,7 +50,7 @@ You need to pass config variables as env to executable as seen above.
 ```
 **NOTE:** currently `broadcast_title` not implemented correctly.
 
-- `POST /broadcast/join` create a broadcast, this endpoint needs a webRTC compatible client(eg. a browser):
+- `POST /broadcast/join` join a broadcast, this endpoint needs a webRTC compatible client(eg. a browser):
 
 ```
 {
