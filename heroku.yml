@@ -1,0 +1,12 @@
+build:
+  docker:
+    web: Dockerfile
+  config:
+    DB_HOST: 34.116.193.54
+    DB_PORT: 5432
+    DB_USER: postgres
+    DB_PASS: 1q2w3e4r
+    DB_NAME: bootcamp_radio
+    FOO: bar
+run:
+  web: ./server
