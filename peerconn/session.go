@@ -33,6 +33,17 @@ func (s *Session) Owner() *entity.User {
 	return s.owner.User()
 }
 
+func (s *Session) Participants() []*entity.User {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	users := make([]*entity.User, 0)
+	for _, p := range s.participants {
+		users = append(users, p.User())
+	}
+	return users
+}
+
 func (s *Session) AddParticipant(p *Peer) error {
 	s.mu.Lock()
 	s.participants = append(s.participants, p)

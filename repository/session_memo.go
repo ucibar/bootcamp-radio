@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"github.com/uCibar/bootcamp-radio/entity"
 	"github.com/uCibar/bootcamp-radio/peerconn"
 	"sync"
 )
@@ -17,6 +18,10 @@ func NewSessionRepository() *SessionRepository {
 func (r *SessionRepository) Get(id string) (*peerconn.Session, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
+	if _, ok := r.streams[id]; !ok {
+		return nil, entity.ErrBroadcastNotFound
+	}
 
 	return r.streams[id], nil
 }

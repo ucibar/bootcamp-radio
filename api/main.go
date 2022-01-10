@@ -46,6 +46,7 @@ func main() {
 	router.POST("/api/auth/register", authHandler.Register)
 
 	router.GET("/broadcast/list", authHandler.Middleware(broadcastHandler.List))
+	router.GET("/broadcast/info/:broadcast_id", authHandler.Middleware(broadcastHandler.Info))
 	router.POST("/broadcast/create", authHandler.Middleware(broadcastHandler.Create))
 	router.POST("/broadcast/join", authHandler.Middleware(broadcastHandler.Join))
 

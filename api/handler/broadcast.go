@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
@@ -42,9 +43,10 @@ type BroadcastJoinRes struct {
 }
 
 type BroadcastRes struct {
-	BroadcastID string `json:"broadcast_id"`
-	Title       string `json:"title"`
-	Username    string `json:"username"`
+	BroadcastID string   `json:"broadcast_id"`
+	Title       string   `json:"title"`
+	Owner       string   `json:"owner"`
+	Subscribers []string `json:"subscribers,omitempty"`
 }
 
 type BroadcastListRes struct {
@@ -165,8 +167,42 @@ func (h *BroadcastHandler) List(w http.ResponseWriter, r *http.Request, _ httpro
 		res.Broadcasts = append(res.Broadcasts, &BroadcastRes{
 			BroadcastID: broadcast.ID,
 			Title:       broadcast.Title,
-			Username:    broadcast.Owner().Username,
+			Owner:       broadcast.Owner().Username,
 		})
+	}
+
+	h.writeResponse(w, response.Success(200, res))
+}
+
+func (h *BroadcastHandler) Info(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	broadcastId := p.ByName("broadcast_id")
+
+	if broadcastId == "" {
+		h.writeResponse(w, response.InvalidParam("broadcast_id not provided"))
+		return
+	}
+
+	broadcast, err := h.sessionRepository.Get(broadcastId)
+	if errors.Is(err, entity.ErrBroadcastNotFound) {
+		h.writeResponse(w, response.NotFound("broadcast not found"))
+		return
+	} else if err != nil {
+		h.writeLog(err.Error())
+		h.writeResponse(w, response.ServerError())
+		return
+	}
+
+	subscribers := broadcast.Participants()
+
+	res := BroadcastRes{
+		BroadcastID: broadcast.ID,
+		Title:       broadcast.Title,
+		Owner:       broadcast.Owner().Username,
+		Subscribers: make([]string, 0, len(subscribers)),
+	}
+
+	for _, user := range subscribers {
+		res.Subscribers = append(res.Subscribers, user.Username)
 	}
 
 	h.writeResponse(w, response.Success(200, res))

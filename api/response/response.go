@@ -13,8 +13,16 @@ func InvalidBody(msg string) *Response {
 	return Error(http.StatusUnprocessableEntity, &ErrorPayload{Reason: "invalid_body", Message: msg})
 }
 
+func InvalidParam(msg string) *Response {
+	return Error(http.StatusBadRequest, &ErrorPayload{Reason: "invalid_param", Message: msg})
+}
+
 func BadRequest(msg string) *Response {
 	return Error(http.StatusBadRequest, &ErrorPayload{Reason: "bad_request", Message: msg})
+}
+
+func NotFound(msg string) *Response {
+	return Error(http.StatusNotFound, &ErrorPayload{Reason: "not_found", Message: msg})
 }
 
 func ServerError() *Response {
