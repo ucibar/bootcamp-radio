@@ -7,5 +7,6 @@ RUN go build -o server ./api
 FROM alpine
 WORKDIR /app
 COPY --from=builder /build/server /app/
+COPY --from=builder /build/public /app/
 WORKDIR /app
 CMD ["./server"]
