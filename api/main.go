@@ -34,7 +34,7 @@ func main() {
 
 	authService := auth.NewService(userService)
 
-	broadcastRepository := repository.NewBroadcastRepository()
+	broadcastRepository := repository.NewSessionRepository()
 
 	authHandler := handler.NewAuthHandler(authService, httpLogger)
 
