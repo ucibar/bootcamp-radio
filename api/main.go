@@ -51,6 +51,12 @@ func main() {
 
 	router.ServeFiles("/public/*filepath", http.Dir("public"))
 
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		log.Fatal("$PORT must be set")
+	}
+
 	fmt.Println("server is running on port 8085")
-	log.Fatal(http.ListenAndServe(":8085", router))
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
