@@ -11,7 +11,7 @@
 First create a PostgreSQL database, after that run with your config:
 ```
 $ go build -o server ./api
-$ DB_HOST=localhost DB_PORT=5432 DB_USER=postgres DB_PASS=postgres DB_NAME=whereami ./server
+$ DB_HOST=localhost DB_PORT=5432 DB_USER=postgres DB_PASS=postgres DB_NAME=bootcamp_radio ./server
 ```
 
 You need to pass config variables as env to executable as seen above.
