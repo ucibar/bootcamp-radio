@@ -9,15 +9,14 @@ import (
 	"github.com/uCibar/bootcamp-radio/entity"
 	"github.com/uCibar/bootcamp-radio/peerconn"
 	"github.com/uCibar/bootcamp-radio/signal"
-	"github.com/uCibar/bootcamp-radio/stream"
 	"log"
 	"net/http"
 )
 
-type BroadcastRepository interface {
-	All() []*stream.Broadcast
-	Add(b *stream.Broadcast) error
-	Get(id string) (*stream.Broadcast, error)
+type SessionRepository interface {
+	All() []*peerconn.Session
+	Add(b *peerconn.Session) error
+	Get(id string) (*peerconn.Session, error)
 }
 
 type BroadcastCreateReq struct {
@@ -54,11 +53,11 @@ type BroadcastListRes struct {
 
 type BroadcastHandler struct {
 	*handler
-	broadcastRepository BroadcastRepository
+	sessionRepository SessionRepository
 }
 
-func NewBroadcastHandler(broadcastRepository BroadcastRepository, logger *log.Logger) *BroadcastHandler {
-	return &BroadcastHandler{broadcastRepository: broadcastRepository, handler: newHandler(logger)}
+func NewBroadcastHandler(sessionRepository SessionRepository, logger *log.Logger) *BroadcastHandler {
+	return &BroadcastHandler{sessionRepository: sessionRepository, handler: newHandler(logger)}
 }
 
 func (h *BroadcastHandler) Create(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -75,26 +74,27 @@ func (h *BroadcastHandler) Create(w http.ResponseWriter, r *http.Request, _ http
 	offer := webrtc.SessionDescription{}
 	signal.Decode(createReq.Offer, &offer)
 
-	pc, err := peerconn.NewPublisherPeer()
+	peer, err := peerconn.NewPublisherPeer(uuid.New().String(), user)
 	if err != nil {
 		h.writeLog(err.Error())
 		h.writeResponse(w, response.ServerError())
 		return
 	}
 
-	publisher := peerconn.NewPublisher(uuid.New().String(), pc)
-
-	err = h.initPeer(pc, offer)
+	err = h.initPeer(peer.PC(), offer)
 	if err != nil {
 		h.writeLog(err.Error())
 		h.writeResponse(w, response.ServerError())
 		return
 	}
 
-	broadcastId := uuid.New().String()
-	broadcast := stream.NewBroadcast(broadcastId, publisher, fmt.Sprintf("%s's Broadcast", user.Username), user.Username)
+	if createReq.BroadcastTitle == "" {
+		createReq.BroadcastTitle = fmt.Sprintf("%s's broadcast", user.Username)
+	}
 
-	err = h.broadcastRepository.Add(broadcast)
+	session := peerconn.NewSession(uuid.New().String(), createReq.BroadcastTitle, peer)
+
+	err = h.sessionRepository.Add(session)
 	if err != nil {
 		h.writeLog(err.Error())
 		h.writeResponse(w, response.ServerError())
@@ -102,12 +102,13 @@ func (h *BroadcastHandler) Create(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	h.writeResponse(w, response.Success(201, BroadcastCreateRes{
-		BroadcastID: broadcast.ID,
-		Answer:      signal.Encode(pc.LocalDescription()),
+		BroadcastID: session.ID,
+		Answer:      signal.Encode(peer.PC().LocalDescription()),
 	}))
 }
 
 func (h *BroadcastHandler) Join(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	user := r.Context().Value("user").(*entity.User)
 	var joinReq BroadcastJoinReq
 
 	err := h.readBody(r, &joinReq)
@@ -116,7 +117,7 @@ func (h *BroadcastHandler) Join(w http.ResponseWriter, r *http.Request, _ httpro
 		return
 	}
 
-	broadcast, err := h.broadcastRepository.Get(joinReq.BroadcastID)
+	session, err := h.sessionRepository.Get(joinReq.BroadcastID)
 	if err != nil {
 		h.writeLog(err.Error())
 		h.writeResponse(w, response.ServerError())
@@ -126,23 +127,21 @@ func (h *BroadcastHandler) Join(w http.ResponseWriter, r *http.Request, _ httpro
 	offer := webrtc.SessionDescription{}
 	signal.Decode(joinReq.Offer, &offer)
 
-	pc, err := peerconn.NewSubscriberPeer()
+	peer, err := peerconn.NewSubscriberPeer(uuid.New().String(), user)
 	if err != nil {
 		h.writeLog(err.Error())
 		h.writeResponse(w, response.ServerError())
 		return
 	}
 
-	subscriber := peerconn.NewSubscriber("test", pc)
-
-	err = broadcast.AddSubscriber(subscriber)
+	err = session.AddParticipant(peer)
 	if err != nil {
 		h.writeLog(err.Error())
 		h.writeResponse(w, response.ServerError())
 		return
 	}
 
-	err = h.initPeer(pc, offer)
+	err = h.initPeer(peer.PC(), offer)
 	if err != nil {
 		h.writeLog(err.Error())
 		h.writeResponse(w, response.ServerError())
@@ -150,15 +149,15 @@ func (h *BroadcastHandler) Join(w http.ResponseWriter, r *http.Request, _ httpro
 	}
 
 	h.writeResponse(w, response.Success(200, BroadcastJoinRes{
-		BroadcastID:    broadcast.ID,
-		BroadcastTitle: broadcast.Title,
-		Username:       broadcast.Username,
-		Answer:         signal.Encode(pc.LocalDescription()),
+		BroadcastID:    session.ID,
+		BroadcastTitle: session.Title,
+		Username:       session.Owner().Username,
+		Answer:         signal.Encode(peer.PC().LocalDescription()),
 	}))
 }
 
 func (h *BroadcastHandler) List(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	broadcasts := h.broadcastRepository.All()
+	broadcasts := h.sessionRepository.All()
 
 	res := BroadcastListRes{Broadcasts: make([]*BroadcastRes, 0, len(broadcasts))}
 
@@ -166,7 +165,7 @@ func (h *BroadcastHandler) List(w http.ResponseWriter, r *http.Request, _ httpro
 		res.Broadcasts = append(res.Broadcasts, &BroadcastRes{
 			BroadcastID: broadcast.ID,
 			Title:       broadcast.Title,
-			Username:    broadcast.Username,
+			Username:    broadcast.Owner().Username,
 		})
 	}
 

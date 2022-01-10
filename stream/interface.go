@@ -7,5 +7,6 @@ type Publisher interface {
 }
 
 type Subscriber interface {
-	AddTrack(webrtc.TrackLocal) error
+	ID() string
+	SubscribeTrack(webrtc.TrackLocal) error
 }
